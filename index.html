@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sales App iOS</title>
+    <title>Daily Report Online</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
@@ -215,7 +215,7 @@
     <!-- JAVASCRIPT LOGIC -->
     <script>
         // PASTIKAN GANTI URL DI BAWAH INI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxe6VSPkZPeK5wWr3fA2XmOG0RBbHHHk-rUsa-MIrPOZA7EgEpcAPXdDi4GIacnJv4B/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRfV1rOBoYwIM6Kyb6JL0Z0NegvbmpcfaZdF0Ol8r99d48KRpJct9PUG6z6RYZHOt3/exec'; 
         
         let currentPajak = 0;
         let todayStr = new Date().toISOString().split('T')[0];
@@ -465,7 +465,7 @@
                 if(data.status === "exists") {
                     Swal.fire({
                         title: 'Data Tanggal Tersebut Sudah Ada!', 
-                        text: `Data tanggal ini sudah pernah diinput (terakhir oleh ${data.prevOwner}). Apakah kamu yakin ingin mengganti (replace) seluruh data di tanggal tersebut dengan data ini?`, 
+                        text: `Data tanggal ini sudah pernah diinput (terakhir oleh ${data.prevOwner}). Apakah kamu yakin ingin mengganti (replace) seluruh data di tanggal tersebut? (Data lama otomatis diamankan di Sheet Backup)`, 
                         icon: 'warning',
                         showCancelButton: true, 
                         confirmButtonText: 'Ya, Replace (Ganti)', 
@@ -576,15 +576,19 @@
                 } else if (res.isDenied) {
                     Swal.fire({
                         title: 'Yakin Hapus Data?',
-                        text: "Data akan dihapus permanen dari Database (Sheet)!",
+                        text: "Data akan dihapus dari Database Utama (dan otomatis diamankan ke Sheet Backup)!",
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonText: 'Ya, Hapus!',
                         confirmButtonColor: '#ff3b30'
                     }).then((delRes) => {
                         if(delRes.isConfirmed) {
-                            apiCall({ action: "delete", username: localStorage.getItem("loggedInUser"), date: dateStr })
-                            .then(d => {
+                            apiCall({ 
+                                action: "delete", 
+                                username: localStorage.getItem("loggedInUser"), 
+                                fullName: localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser"),
+                                date: dateStr 
+                            }).then(d => {
                                 if (d.status === "success") {
                                     alertIOS("Terhapus", d.message, "success");
                                     loadHistory();
