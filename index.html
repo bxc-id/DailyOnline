@@ -164,6 +164,11 @@
                     <h4 style="margin: 0; font-size: 18px;">Riwayat Input Seluruh Tim</h4>
                     <span style="font-size: 12px; color: var(--ios-gray);">Ketuk untuk melihat detail, edit, atau hapus data.</span>
                 </div>
+                <!-- BAGIAN FILTER BULAN -->
+                <div style="padding: 15px; background: #fff; border-bottom: 1px solid #e5e5ea; display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 14px; font-weight: 600; color: var(--ios-gray);">Filter Bulan:</label>
+                    <input type="month" id="monthFilter" class="ios-input" style="width: auto; padding: 8px 12px; font-size: 14px;" onchange="loadHistory()">
+                </div>
                 <div id="historyList"></div>
             </div>
         </div>
@@ -215,7 +220,7 @@
     <!-- JAVASCRIPT LOGIC -->
     <script>
         // PASTIKAN GANTI URL DI BAWAH INI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRfV1rOBoYwIM6Kyb6JL0Z0NegvbmpcfaZdF0Ol8r99d48KRpJct9PUG6z6RYZHOt3/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGUlYxHdR57fLqjKMw1-SUkvndbPdhXZbhkNramzlVPUEc8dqm7EIqxrwMKarWA74/exec'; 
         
         let currentPajak = 0;
         let todayStr = new Date().toISOString().split('T')[0];
@@ -223,6 +228,9 @@
 
         window.onload = () => {
             document.getElementById('inputDate').value = todayStr;
+            // SET DEFAULT FILTER BULAN KE BULAN INI
+            document.getElementById('monthFilter').value = todayStr.substring(0, 7);
+
             const user = localStorage.getItem("loggedInUser");
             const role = localStorage.getItem("userRole");
             const fullName = localStorage.getItem("userFullName") || user;
@@ -494,21 +502,24 @@
             });
         }
 
-        // --- HISTORY MENU ---
+        // --- HISTORY MENU DENGAN FILTER BULAN ---
         function loadHistory() {
             let container = document.getElementById('historyList');
             container.innerHTML = "<div style='padding:20px;text-align:center;'>Memuat data...</div>";
             
-            apiCall({ action: "getHistory", username: localStorage.getItem("loggedInUser") })
+            // Ambil filter bulan
+            let filterMonth = document.getElementById('monthFilter').value; 
+            
+            apiCall({ action: "getHistory", username: localStorage.getItem("loggedInUser"), month: filterMonth })
             .then(data => {
                 if(data.data.length === 0) {
-                    container.innerHTML = "<div style='padding:20px;text-align:center;color:gray;'>Belum ada riwayat.</div>"; return;
+                    container.innerHTML = "<div style='padding:20px;text-align:center;color:gray;'>Belum ada riwayat pada bulan ini.</div>"; return;
                 }
                 
                 let html = "";
                 data.data.forEach(row => {
                     let dDate = row[1];
-                    let ownerName = row[3] || row[0]; // Di Backend sekarang diset ke Full Name
+                    let ownerName = row[3] || row[0]; 
                     let dDaily = parseFloat(row[33] || 0).toLocaleString('id-ID');
                     let htmlData = JSON.stringify(row).replace(/"/g, '&quot;');
                     
