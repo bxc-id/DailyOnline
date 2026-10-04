@@ -18,7 +18,7 @@
         }
         .hidden { display: none !important; }
         
-        h4 { font-weight: 700; font-size: 24px; margin-bottom: 20px; }
+        h4 { font-weight: 700; font-size: 24px; margin-bottom: 5px; margin-top: 0; }
         .app-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); padding: 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea; }
         
         .ios-card { background: var(--ios-card); border-radius: 16px; padding: 20px; margin: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
@@ -51,6 +51,13 @@
         
         .info-detail b { color: #333; }
         .info-detail { text-align: left; font-size: 14px; line-height: 1.6; color: #555;}
+
+        /* Refresh Button Styles */
+        .refresh-btn { background: none; border: none; cursor: pointer; padding: 5px; outline: none; }
+        .refresh-btn svg { transition: transform 0.2s; }
+        .refresh-btn:active svg { transform: scale(0.9); }
+        .spin { animation: spinAnim 0.6s ease-in-out; }
+        @keyframes spinAnim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -71,7 +78,17 @@
     <div id="appSection" class="hidden">
         
         <div class="app-header">
-            <h4 style="margin: 0;">Halo, <span id="staffName" style="color: var(--ios-blue);"></span> 👋</h4>
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 12px; font-weight: 800; color: var(--ios-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Daily Report Online</div>
+                    <h4>Halo, <span id="staffName" style="color: var(--ios-blue);"></span> 👋</h4>
+                </div>
+                <button onclick="refreshData()" class="refresh-btn" id="btnRefresh" title="Refresh Data">
+                    <svg id="refreshIcon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ios-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+            </div>
             <div style="font-size: 12px; color: var(--ios-gray); margin-top: 5px;">
                 Pajak: <b id="infoPajak">0</b>% | Target: Rp <b id="infoTarget">0</b>
             </div>
@@ -139,8 +156,8 @@
         <div id="tabHistory" class="tab-content hidden">
             <div class="ios-card" style="padding: 0; overflow: hidden;">
                 <div style="padding: 20px; background: #f9f9f9; border-bottom: 1px solid #e5e5ea;">
-                    <h4 style="margin: 0; font-size: 18px;">Riwayat Input Anda</h4>
-                    <span style="font-size: 12px; color: var(--ios-gray);">Ketuk untuk melihat, edit, atau hapus data.</span>
+                    <h4 style="margin: 0; font-size: 18px;">Riwayat Input Seluruh Tim</h4>
+                    <span style="font-size: 12px; color: var(--ios-gray);">Ketuk untuk melihat detail, edit, atau hapus data.</span>
                 </div>
                 <div id="historyList"></div>
             </div>
@@ -162,6 +179,12 @@
             </div>
         </div>
 
+        <!-- FOOTER / WATERMARK -->
+        <div style="text-align: center; margin: 35px 0 110px 0; font-size: 12px; color: var(--ios-gray); line-height: 1.5;">
+            <b>Creator & Dev : Alfian Ananda (162331)</b><br>
+            &copy; Copyright 2026
+        </div>
+
         <!-- BOTTOM TAB BAR -->
         <div class="tab-bar">
             <div class="tab-item active" id="navForm" onclick="switchTab('Form')"><i class="bi bi-pencil-square"></i>Form</div>
@@ -174,13 +197,12 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // GANTI DENGAN URL WEB APP TERBARU ANDA
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyk13RjhJmP-GmEfGIN-h5DLQ9MZ-PCZTUj2SDN-1DOmfXARW20UUX63KPI_BJu8rBM/exec'; 
+        // GANTI DENGAN URL WEB APP TERBARU ANDA SETELAH DEPLOY!
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygP0v0O8q7K2WOV0CVFZPC2ZYqHzE0lfpy1210p6YVH1WoXfQ3T86X0_swOgj8krpW/exec'; 
         
         let currentPajak = 0;
         let todayStr = new Date().toISOString().split('T')[0];
         let activeChannels = []; 
-        let hasExistingDataOnForm = false; // Penanda untuk memunculkan Popup Replace
 
         window.onload = () => {
             document.getElementById('inputDate').value = todayStr;
@@ -205,6 +227,7 @@
             let val = obj.value.replace(/[^0-9]/g, '');
             obj.value = val ? parseInt(val, 10).toLocaleString('id-ID') : "";
         }
+        
         function getInt(str) {
             if(!str) return 0;
             return parseInt(str.toString().replace(/[^0-9]/g, '')) || 0;
@@ -217,6 +240,23 @@
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             }).then(res => res.json());
+        }
+
+        // --- REFRESH DATA (ANIMASI) ---
+        function refreshData() {
+            let icon = document.getElementById('refreshIcon');
+            icon.classList.remove('spin');
+            void icon.offsetWidth; // trigger reflow
+            icon.classList.add('spin');
+            
+            let activeTab = document.querySelector('.tab-item.active').id;
+            if (activeTab === 'navForm') {
+                initData(document.getElementById('inputDate').value);
+            } else if (activeTab === 'navHistory') {
+                loadHistory();
+            }
+            
+            setTimeout(() => { icon.classList.remove('spin'); }, 600);
         }
 
         function login() {
@@ -262,19 +302,13 @@
 
         // --- FETCH INIT DATA & CEK TANGGAL DARI FORM ---
         function initData(selectedDate) {
-            apiCall({ action: "getInitData", username: localStorage.getItem("loggedInUser"), date: selectedDate })
+            apiCall({ action: "getInitData", date: selectedDate })
             .then(data => {
                 currentPajak = parseFloat(data.pajak);
                 document.getElementById('infoPajak').innerText = currentPajak;
                 document.getElementById('infoTarget').innerText = parseFloat(data.target).toLocaleString('id-ID');
                 document.getElementById('setPajak').value = currentPajak;
                 document.getElementById('setTarget').value = parseFloat(data.target).toLocaleString('id-ID');
-
-                if(data.existingData) {
-                    hasExistingDataOnForm = true;
-                } else {
-                    hasExistingDataOnForm = false;
-                }
             });
         }
 
@@ -282,20 +316,32 @@
             let selected = document.getElementById('inputDate').value;
             resetForm();
             
-            apiCall({ action: "getInitData", username: localStorage.getItem("loggedInUser"), date: selected })
+            apiCall({ action: "getInitData", date: selected })
             .then(data => {
                 if (data.existingData) {
-                    hasExistingDataOnForm = true;
+                    let previousOwner = data.existingData[3] || data.existingData[0];
                     Swal.fire({
-                        title: 'Data Ditemukan', text: `Data di tanggal ${selected} sudah ada. Load data ini untuk diedit?`, icon: 'question',
-                        showCancelButton: true, confirmButtonText: 'Load Data', cancelButtonText: 'Batal (Buat Baru)', confirmButtonColor: '#007aff'
+                        title: 'Data Sudah Ada!', 
+                        text: `Data tanggal ${selected} sudah pernah diinput oleh ${previousOwner}. Apakah kamu yakin kamu mau mengganti (replace) data sebelumnya?`, 
+                        icon: 'question',
+                        showCancelButton: true, 
+                        confirmButtonText: 'Ya, Replace', 
+                        cancelButtonText: 'Batal', 
+                        confirmButtonColor: '#ff9500',
+                        cancelButtonColor: '#8e8e93'
                     }).then((result) => {
                         if(result.isConfirmed) {
                             fillFormWithExistingData(data.existingData);
+                            // Otomatis ubah sales input ke pengetik sekarang (mereplace)
+                            document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
+                        } else {
+                            // Kosongkan tanggal kembali jika dibatalkan
+                            document.getElementById('inputDate').value = "";
+                            document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
                         }
                     });
                 } else {
-                    hasExistingDataOnForm = false;
+                    document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
                 }
             });
         }
@@ -349,26 +395,11 @@
             document.getElementById(`net_${safeId}`).value = Math.round(net).toLocaleString('id-ID');
         }
 
-        // --- SUBMIT DENGAN REPLACE POPUP ---
+        // --- SUBMIT OTOMATIS TERSIMPAN / REPLACE ---
         function submitData(e) {
             e.preventDefault();
             if(activeChannels.length === 0) { alertIOS("Perhatian", "Pilih minimal 1 channel!", "warning"); return; }
-            
-            if (hasExistingDataOnForm) {
-                Swal.fire({
-                    title: 'Timpa Data Lama?',
-                    text: 'Data pada tanggal ini sudah ada. Anda yakin ingin menimpanya (replace) dengan data baru ini?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, Replace',
-                    cancelButtonText: 'Batal',
-                    confirmButtonColor: '#ff9500'
-                }).then((r) => {
-                    if (r.isConfirmed) executeSubmit();
-                });
-            } else {
-                executeSubmit();
-            }
+            executeSubmit();
         }
 
         function executeSubmit() {
@@ -398,7 +429,6 @@
 
             apiCall(payload).then(data => {
                 alertIOS("Sukses", data.message, "success");
-                hasExistingDataOnForm = true; // Set menjadi true setelah disave agar klik simpan lg memunculkan replace
                 btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
             }).catch(() => { alertIOS("Error", "Gagal menghubungi server", "error"); btn.disabled = false; });
         }
@@ -417,6 +447,7 @@
                 let html = "";
                 data.data.forEach(row => {
                     let dDate = row[1];
+                    let ownerName = row[3] || row[0];
                     let dDaily = parseFloat(row[33] || 0).toLocaleString('id-ID');
                     let htmlData = JSON.stringify(row).replace(/"/g, '&quot;');
                     
@@ -425,6 +456,7 @@
                             <div>
                                 <div class="h-date">${new Date(dDate).toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long'})}</div>
                                 <div class="h-sub">Net Sales: Rp ${parseFloat(row[34] || 0).toLocaleString('id-ID')} | Total Sales: Rp ${dDaily}</div>
+                                <div class="h-sub" style="color:var(--ios-blue); font-weight:600; font-size:11px;">Input oleh: ${ownerName}</div>
                             </div>
                             <i class="bi bi-chevron-right" style="color:var(--ios-gray)"></i>
                         </div>
@@ -438,7 +470,15 @@
             let rowData = JSON.parse(rowDataStr);
             let dateStr = rowData[1];
             
+            // Format waktu sudah diperbaiki dari server langsung.
+            let dtInfo = rowData[2]; 
+            let editorName = rowData[3] || rowData[0];
+            
             let htmlContent = `<div class="info-detail">`;
+            htmlContent += `<div style="background:#f2f2f7; padding:12px; border-radius:10px; margin-bottom:15px; font-size:13px; text-align:center;">`;
+            htmlContent += `<b>Waktu Update:</b><br>${dtInfo}<br><br>`;
+            htmlContent += `<b>Terakhir Diupdate Oleh:</b><br><span style="color:var(--ios-blue); font-weight:bold; font-size:15px;">${editorName}</span></div>`;
+            
             htmlContent += `<b>Internal View:</b> ${(rowData[4]||0).toLocaleString('id-ID')}<br>`;
             htmlContent += `<b>Customer View:</b> ${(rowData[5]||0).toLocaleString('id-ID')}<br>`;
             htmlContent += `<b>Total View:</b> ${(rowData[6]||0).toLocaleString('id-ID')}<br>`;
@@ -470,16 +510,16 @@
                 cancelButtonColor: '#8e8e93'
             }).then((res) => {
                 if (res.isConfirmed) {
-                    // EDIT
+                    // JIKA KLIK EDIT -> Set Tanggal, Load Data, dan Ubah Nama Input Otomatis.
                     document.getElementById('inputDate').value = dateStr;
-                    hasExistingDataOnForm = true; 
                     fillFormWithExistingData(rowData);
+                    document.getElementById('salesInput').value = localStorage.getItem("loggedInUser"); 
                     switchTab('Form');
                 } else if (res.isDenied) {
                     // HAPUS
                     Swal.fire({
                         title: 'Yakin Hapus Data?',
-                        text: "Data yang dihapus tidak dapat dikembalikan!",
+                        text: "Data akan dihapus permanen dari Database!",
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonText: 'Ya, Hapus!',
@@ -490,7 +530,7 @@
                             .then(d => {
                                 alertIOS("Terhapus", d.message, "success");
                                 loadHistory();
-                                if(document.getElementById('inputDate').value === dateStr) { resetForm(); hasExistingDataOnForm = false; }
+                                if(document.getElementById('inputDate').value === dateStr) { resetForm(); }
                             });
                         }
                     });
@@ -527,6 +567,7 @@
             document.getElementById('customerView').value = "";
             document.getElementById('totalView').value = "";
             document.getElementById('totalChats').value = "";
+            document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
         }
 
         // --- ADMIN PANEL ---
