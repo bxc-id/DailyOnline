@@ -106,12 +106,12 @@
 
                     <div style="display: flex; gap: 15px;">
                         <div class="input-group" style="flex: 1;">
-                            <label>Internal View</label>
-                            <input type="text" inputmode="numeric" id="internalView" class="ios-input" oninput="formatRibuan(this); calcTotalView()">
+                            <label>Internal View <span style="color:red">*</span></label>
+                            <input type="text" inputmode="numeric" id="internalView" class="ios-input" oninput="formatRibuan(this); calcTotalView()" required>
                         </div>
                         <div class="input-group" style="flex: 1;">
-                            <label>Customer View</label>
-                            <input type="text" inputmode="numeric" id="customerView" class="ios-input" oninput="formatRibuan(this); calcTotalView()">
+                            <label>Customer View <span style="color:red">*</span></label>
+                            <input type="text" inputmode="numeric" id="customerView" class="ios-input" oninput="formatRibuan(this); calcTotalView()" required>
                         </div>
                     </div>
                     
@@ -121,8 +121,8 @@
                             <input type="text" id="totalView" class="ios-input" readonly>
                         </div>
                         <div class="input-group" style="flex: 1;">
-                            <label>Total Chats</label>
-                            <input type="text" inputmode="numeric" id="totalChats" class="ios-input" oninput="formatRibuan(this)">
+                            <label>Total Chats <span style="color:red">*</span></label>
+                            <input type="text" inputmode="numeric" id="totalChats" class="ios-input" oninput="formatRibuan(this)" required>
                         </div>
                     </div>
 
@@ -163,10 +163,12 @@
             </div>
         </div>
 
-        <!-- 3. TAB: ADMIN -->
+        <!-- 3. TAB: ADMIN PANEL -->
         <div id="tabAdmin" class="tab-content hidden">
+            
+            <!-- SECTION SETTINGS -->
             <div class="ios-card">
-                <h4 style="color: #ff9500;">Admin Panel</h4>
+                <h4 style="color: #ff9500; margin-bottom: 15px;"><i class="bi bi-gear-fill"></i> Pengaturan Aplikasi</h4>
                 <div class="input-group">
                     <label>Setting Pajak (%)</label>
                     <input type="number" id="setPajak" class="ios-input">
@@ -177,6 +179,16 @@
                 </div>
                 <button onclick="saveAdmin()" id="btnSaveAdmin" class="ios-btn ios-btn-warning">Simpan Pengaturan</button>
             </div>
+
+            <!-- SECTION KELOLA STAFF -->
+            <div class="ios-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="margin: 0; font-size: 18px; color: var(--ios-blue);"><i class="bi bi-people-fill"></i> Kelola Staff & User</h4>
+                    <button onclick="showAddStaffModal()" class="ios-btn" style="width: auto; padding: 8px 14px; font-size: 13px;">+ Staff Baru</button>
+                </div>
+                <div id="staffListContainer"></div>
+            </div>
+
         </div>
 
         <!-- FOOTER / WATERMARK -->
@@ -197,8 +209,8 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // GANTI DENGAN URL WEB APP TERBARU ANDA SETELAH DEPLOY!
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygP0v0O8q7K2WOV0CVFZPC2ZYqHzE0lfpy1210p6YVH1WoXfQ3T86X0_swOgj8krpW/exec'; 
+        // GANTI URL DI BAWAH INI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZUT0bkv_jQDDE8NhiyQvkXb4tsiaNUXD4wB2NMHhCrRGmt_53k3ogz3M6xJobWkIh/exec'; 
         
         let currentPajak = 0;
         let todayStr = new Date().toISOString().split('T')[0];
@@ -242,11 +254,10 @@
             }).then(res => res.json());
         }
 
-        // --- REFRESH DATA (ANIMASI) ---
         function refreshData() {
             let icon = document.getElementById('refreshIcon');
             icon.classList.remove('spin');
-            void icon.offsetWidth; // trigger reflow
+            void icon.offsetWidth; 
             icon.classList.add('spin');
             
             let activeTab = document.querySelector('.tab-item.active').id;
@@ -254,8 +265,9 @@
                 initData(document.getElementById('inputDate').value);
             } else if (activeTab === 'navHistory') {
                 loadHistory();
+            } else if (activeTab === 'navAdmin') {
+                loadStaffList();
             }
-            
             setTimeout(() => { icon.classList.remove('spin'); }, 600);
         }
 
@@ -272,7 +284,7 @@
                     localStorage.setItem("userRole", data.role);
                     location.reload();
                 } else {
-                    alertIOS("Gagal", data.message, "error");
+                    alertIOS("Gagal Login", data.message, "error");
                     document.getElementById('btnLogin').innerText = 'Masuk';
                 }
             }).catch(e => { alertIOS("Error", "Gagal menghubungi server", "error"); document.getElementById('btnLogin').innerText = 'Masuk'; });
@@ -292,6 +304,7 @@
             document.getElementById('tab' + tabName).classList.remove('hidden');
             document.getElementById('nav' + tabName).classList.add('active');
             if (tabName === 'History') loadHistory();
+            if (tabName === 'Admin') loadStaffList();
         }
 
         function calcTotalView() {
@@ -300,7 +313,6 @@
             document.getElementById('totalView').value = (iv + cv).toLocaleString('id-ID');
         }
 
-        // --- FETCH INIT DATA & CEK TANGGAL DARI FORM ---
         function initData(selectedDate) {
             apiCall({ action: "getInitData", date: selectedDate })
             .then(data => {
@@ -315,28 +327,26 @@
         function checkDate() {
             let selected = document.getElementById('inputDate').value;
             resetForm();
+            document.getElementById('inputDate').value = selected;
             
             apiCall({ action: "getInitData", date: selected })
             .then(data => {
                 if (data.existingData) {
                     let previousOwner = data.existingData[3] || data.existingData[0];
                     Swal.fire({
-                        title: 'Data Sudah Ada!', 
-                        text: `Data tanggal ${selected} sudah pernah diinput oleh ${previousOwner}. Apakah kamu yakin kamu mau mengganti (replace) data sebelumnya?`, 
-                        icon: 'question',
+                        title: 'Data Ditemukan', 
+                        text: `Data untuk tanggal ${selected} sudah pernah diinput oleh ${previousOwner}. Apakah ingin memuat (load) data ini untuk diedit?`, 
+                        icon: 'info',
                         showCancelButton: true, 
-                        confirmButtonText: 'Ya, Replace', 
+                        confirmButtonText: 'Ya, Muat Data', 
                         cancelButtonText: 'Batal', 
-                        confirmButtonColor: '#ff9500',
+                        confirmButtonColor: '#007aff',
                         cancelButtonColor: '#8e8e93'
                     }).then((result) => {
                         if(result.isConfirmed) {
                             fillFormWithExistingData(data.existingData);
-                            // Otomatis ubah sales input ke pengetik sekarang (mereplace)
                             document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
                         } else {
-                            // Kosongkan tanggal kembali jika dibatalkan
-                            document.getElementById('inputDate').value = "";
                             document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
                         }
                     });
@@ -395,14 +405,25 @@
             document.getElementById(`net_${safeId}`).value = Math.round(net).toLocaleString('id-ID');
         }
 
-        // --- SUBMIT OTOMATIS TERSIMPAN / REPLACE ---
         function submitData(e) {
             e.preventDefault();
-            if(activeChannels.length === 0) { alertIOS("Perhatian", "Pilih minimal 1 channel!", "warning"); return; }
-            executeSubmit();
+            
+            let iv = document.getElementById('internalView').value;
+            let cv = document.getElementById('customerView').value;
+            let tc = document.getElementById('totalChats').value;
+            if(iv === "" || cv === "" || tc === "") {
+                alertIOS("Perhatian", "Internal View, Customer View, dan Total Chats WAJIB diisi!", "warning");
+                return;
+            }
+            if(activeChannels.length === 0) { 
+                alertIOS("Perhatian", "Pilih minimal 1 channel!", "warning"); 
+                return; 
+            }
+            
+            executeSubmit(false);
         }
 
-        function executeSubmit() {
+        function executeSubmit(confirmReplace) {
             let btn = document.getElementById('btnSubmit');
             btn.innerText = "Memproses..."; btn.disabled = true;
 
@@ -424,16 +445,44 @@
                 customerView: getInt(document.getElementById('customerView').value),
                 totalView: getInt(document.getElementById('totalView').value),
                 totalChats: getInt(document.getElementById('totalChats').value),
-                channels: channelData
+                channels: channelData,
+                confirmReplace: confirmReplace
             };
 
             apiCall(payload).then(data => {
-                alertIOS("Sukses", data.message, "success");
-                btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
-            }).catch(() => { alertIOS("Error", "Gagal menghubungi server", "error"); btn.disabled = false; });
+                if(data.status === "exists") {
+                    Swal.fire({
+                        title: 'Data Tanggal Tersebut Sudah Ada!', 
+                        text: `Data tanggal ini sudah pernah diinput (terakhir oleh ${data.prevOwner}). Apakah kamu yakin ingin mengganti (replace) seluruh data di tanggal tersebut dengan data ini?`, 
+                        icon: 'warning',
+                        showCancelButton: true, 
+                        confirmButtonText: 'Ya, Replace (Ganti)', 
+                        cancelButtonText: 'Batal', 
+                        confirmButtonColor: '#ff9500',
+                        cancelButtonColor: '#8e8e93'
+                    }).then((result) => {
+                        if(result.isConfirmed) {
+                            executeSubmit(true);
+                        } else {
+                            btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
+                        }
+                    });
+                } else if (data.status === "success") {
+                    alertIOS("Sukses", data.message, "success");
+                    btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
+                    resetForm();
+                    document.getElementById('inputDate').value = todayStr;
+                } else {
+                    alertIOS("Error", data.message || "Terjadi Kesalahan", "error");
+                    btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
+                }
+            }).catch(() => { 
+                alertIOS("Error", "Gagal menghubungi server", "error"); 
+                btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false; 
+            });
         }
 
-        // --- HISTORY MENU & DELETE FUNCTION ---
+        // --- HISTORY MENU ---
         function loadHistory() {
             let container = document.getElementById('historyList');
             container.innerHTML = "<div style='padding:20px;text-align:center;'>Memuat data...</div>";
@@ -469,8 +518,6 @@
         function viewHistory(rowDataStr) {
             let rowData = JSON.parse(rowDataStr);
             let dateStr = rowData[1];
-            
-            // Format waktu sudah diperbaiki dari server langsung.
             let dtInfo = rowData[2]; 
             let editorName = rowData[3] || rowData[0];
             
@@ -510,16 +557,14 @@
                 cancelButtonColor: '#8e8e93'
             }).then((res) => {
                 if (res.isConfirmed) {
-                    // JIKA KLIK EDIT -> Set Tanggal, Load Data, dan Ubah Nama Input Otomatis.
                     document.getElementById('inputDate').value = dateStr;
                     fillFormWithExistingData(rowData);
                     document.getElementById('salesInput').value = localStorage.getItem("loggedInUser"); 
                     switchTab('Form');
                 } else if (res.isDenied) {
-                    // HAPUS
                     Swal.fire({
                         title: 'Yakin Hapus Data?',
-                        text: "Data akan dihapus permanen dari Database!",
+                        text: "Data akan dihapus permanen dari Database (Sheet)!",
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonText: 'Ya, Hapus!',
@@ -528,9 +573,16 @@
                         if(delRes.isConfirmed) {
                             apiCall({ action: "delete", username: localStorage.getItem("loggedInUser"), date: dateStr })
                             .then(d => {
-                                alertIOS("Terhapus", d.message, "success");
-                                loadHistory();
-                                if(document.getElementById('inputDate').value === dateStr) { resetForm(); }
+                                if (d.status === "success") {
+                                    alertIOS("Terhapus", d.message, "success");
+                                    loadHistory();
+                                    if(document.getElementById('inputDate').value === dateStr) { 
+                                        resetForm(); 
+                                        document.getElementById('inputDate').value = todayStr;
+                                    }
+                                } else {
+                                    alertIOS("Gagal", d.message, "error");
+                                }
                             });
                         }
                     });
@@ -570,13 +622,155 @@
             document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
         }
 
-        // --- ADMIN PANEL ---
+        // --- ADMIN PANEL & USER MANAGEMENT ---
         function saveAdmin() {
             let btn = document.getElementById('btnSaveAdmin'); btn.innerText = "Menyimpan...";
             let p = document.getElementById('setPajak').value;
             let t = getInt(document.getElementById('setTarget').value);
             apiCall({ action: "updateSettings", username: localStorage.getItem("loggedInUser"), pajak: p, target: t })
             .then(data => { alertIOS("Sukses", data.message, "success"); initData(todayStr); btn.innerText = "Simpan Pengaturan"; });
+        }
+
+        function loadStaffList() {
+            const container = document.getElementById('staffListContainer');
+            if (!container) return;
+            container.innerHTML = "<div style='text-align:center; padding:15px; color:gray;'>Memuat daftar staff...</div>";
+
+            apiCall({ action: "getUsers", username: localStorage.getItem("loggedInUser") })
+            .then(data => {
+                if (data.status === "success") {
+                    if (data.users.length === 0) {
+                        container.innerHTML = "<div style='text-align:center; padding:15px; color:gray;'>Belum ada staff.</div>";
+                        return;
+                    }
+                    let html = "";
+                    data.users.forEach(u => {
+                        let statusBadge = (u.status === "Active" || u.status === "Aktif")
+                            ? `<span style="background:#34c759; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Aktif</span>`
+                            : `<span style="background:#ff3b30; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Nonaktif</span>`;
+                        
+                        let roleBadge = u.role === "Admin"
+                            ? `<span style="background:#ff9500; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Admin</span>`
+                            : `<span style="background:#007aff; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Staff</span>`;
+
+                        html += `
+                            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #e5e5ea;">
+                                <div>
+                                    <div style="font-weight:700; font-size:15px;">${u.username} ${roleBadge} ${statusBadge}</div>
+                                    <div style="font-size:12px; color:var(--ios-gray); margin-top:3px;">Password: <code>${u.password}</code></div>
+                                </div>
+                                <button onclick="showEditStaffModal('${u.username}', '${u.role}', '${u.status}', '${u.password}')" class="ios-btn" style="width:auto; padding:6px 12px; font-size:12px; background:#e5e5ea; color:#007aff;">Kelola</button>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = "<div style='text-align:center; padding:15px; color:red;'>Gagal memuat daftar staff.</div>";
+                }
+            }).catch(() => {
+                container.innerHTML = "<div style='text-align:center; padding:15px; color:red;'>Gagal terhubung ke server.</div>";
+            });
+        }
+
+        function showAddStaffModal() {
+            Swal.fire({
+                title: 'Tambah Staff Baru',
+                html: `
+                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px;">Username:</div>
+                    <input id="swalNewUser" class="swal2-input" placeholder="Masukkan Username" style="margin-top:0;">
+                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Password:</div>
+                    <input id="swalNewPass" type="password" class="swal2-input" placeholder="Masukkan Password" style="margin-top:0;">
+                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Role:</div>
+                    <select id="swalNewRole" class="swal2-input" style="margin-top:0;">
+                        <option value="Staff">Staff</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan Staff',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#007aff',
+                cancelButtonColor: '#8e8e93',
+                preConfirm: () => {
+                    const u = document.getElementById('swalNewUser').value.trim();
+                    const p = document.getElementById('swalNewPass').value.trim();
+                    const r = document.getElementById('swalNewRole').value;
+                    if (!u || !p) {
+                        Swal.showValidationMessage('Username dan Password wajib diisi!');
+                        return false;
+                    }
+                    return { newUsername: u, newPassword: p, newRole: r };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    apiCall({
+                        action: "addStaff",
+                        username: localStorage.getItem("loggedInUser"),
+                        newUsername: result.value.newUsername,
+                        newPassword: result.value.newPassword,
+                        newRole: result.value.newRole
+                    }).then(data => {
+                        if (data.status === "success") {
+                            alertIOS("Sukses", data.message, "success");
+                            loadStaffList();
+                        } else {
+                            alertIOS("Gagal", data.message, "error");
+                        }
+                    });
+                }
+            });
+        }
+
+        function showEditStaffModal(targetUser, currentRole, currentStatus, currentPass) {
+            Swal.fire({
+                title: `Kelola Staff: ${targetUser}`,
+                html: `
+                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px;">Password Baru / Ubah Password:</div>
+                    <input id="swalEditPass" type="text" class="swal2-input" value="${currentPass}" placeholder="Password Baru" style="margin-top:0;">
+                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Role User:</div>
+                    <select id="swalEditRole" class="swal2-input" style="margin-top:0;">
+                        <option value="Staff" ${currentRole === 'Staff' ? 'selected' : ''}>Staff</option>
+                        <option value="Admin" ${currentRole === 'Admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Status Akun:</div>
+                    <select id="swalEditStatus" class="swal2-input" style="margin-top:0;">
+                        <option value="Active" ${(currentStatus === 'Active' || currentStatus === 'Aktif') ? 'selected' : ''}>Aktif</option>
+                        <option value="Inactive" ${(currentStatus === 'Inactive' || currentStatus === 'Nonaktif') ? 'selected' : ''}>Nonaktif</option>
+                    </select>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan Perubahan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#007aff',
+                cancelButtonColor: '#8e8e93',
+                preConfirm: () => {
+                    return {
+                        newPassword: document.getElementById('swalEditPass').value.trim(),
+                        newRole: document.getElementById('swalEditRole').value,
+                        newStatus: document.getElementById('swalEditStatus').value
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    apiCall({
+                        action: "updateStaff",
+                        username: localStorage.getItem("loggedInUser"),
+                        targetUser: targetUser,
+                        newPassword: result.value.newPassword,
+                        newRole: result.value.newRole,
+                        newStatus: result.value.newStatus
+                    }).then(data => {
+                        if (data.status === "success") {
+                            alertIOS("Sukses", data.message, "success");
+                            loadStaffList();
+                        } else {
+                            alertIOS("Gagal", data.message, "error");
+                        }
+                    });
+                }
+            });
         }
     </script>
 </body>
