@@ -58,6 +58,11 @@
         .refresh-btn:active svg { transform: scale(0.9); }
         .spin { animation: spinAnim 0.6s ease-in-out; }
         @keyframes spinAnim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Custom SweetAlert Input Styles */
+        .swal-custom-input { width: 100%; box-sizing: border-box; background: var(--ios-bg); border: 2px solid transparent; border-radius: 12px; padding: 14px 16px; font-size: 15px; margin-bottom: 15px; color: var(--ios-text); outline: none; transition: 0.3s; }
+        .swal-custom-input:focus { border-color: var(--ios-blue); background: #fff; }
+        .swal-label { text-align: left; font-size: 13px; font-weight: 600; color: var(--ios-gray); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
@@ -183,7 +188,7 @@
             <!-- SECTION KELOLA STAFF -->
             <div class="ios-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4 style="margin: 0; font-size: 18px; color: var(--ios-blue);"><i class="bi bi-people-fill"></i> Kelola Staff & User</h4>
+                    <h4 style="margin: 0; font-size: 18px; color: var(--ios-blue);"><i class="bi bi-people-fill"></i> Kelola Staff</h4>
                     <button onclick="showAddStaffModal()" class="ios-btn" style="width: auto; padding: 8px 14px; font-size: 13px;">+ Staff Baru</button>
                 </div>
                 <div id="staffListContainer"></div>
@@ -209,8 +214,8 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // GANTI URL DI BAWAH INI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZUT0bkv_jQDDE8NhiyQvkXb4tsiaNUXD4wB2NMHhCrRGmt_53k3ogz3M6xJobWkIh/exec'; 
+        // PASTIKAN GANTI URL DI BAWAH INI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxe6VSPkZPeK5wWr3fA2XmOG0RBbHHHk-rUsa-MIrPOZA7EgEpcAPXdDi4GIacnJv4B/exec'; 
         
         let currentPajak = 0;
         let todayStr = new Date().toISOString().split('T')[0];
@@ -220,12 +225,16 @@
             document.getElementById('inputDate').value = todayStr;
             const user = localStorage.getItem("loggedInUser");
             const role = localStorage.getItem("userRole");
+            const fullName = localStorage.getItem("userFullName") || user;
             
             if (user) {
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('appSection').classList.remove('hidden');
-                document.getElementById('staffName').innerText = user;
-                document.getElementById('salesInput').value = user; 
+                
+                // Set Nama Sapaan dan Form ke NAMA LENGKAP
+                document.getElementById('staffName').innerText = fullName;
+                document.getElementById('salesInput').value = fullName; 
+                
                 if (role === 'Admin') document.getElementById('navAdmin').classList.remove('hidden');
                 initData(todayStr);
             }
@@ -282,6 +291,7 @@
                 if (data.status === "success") {
                     localStorage.setItem("loggedInUser", data.user);
                     localStorage.setItem("userRole", data.role);
+                    localStorage.setItem("userFullName", data.fullName); // Menyimpan Nama Lengkap
                     location.reload();
                 } else {
                     alertIOS("Gagal Login", data.message, "error");
@@ -328,6 +338,7 @@
             let selected = document.getElementById('inputDate').value;
             resetForm();
             document.getElementById('inputDate').value = selected;
+            const currentName = localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser");
             
             apiCall({ action: "getInitData", date: selected })
             .then(data => {
@@ -345,13 +356,13 @@
                     }).then((result) => {
                         if(result.isConfirmed) {
                             fillFormWithExistingData(data.existingData);
-                            document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
+                            document.getElementById('salesInput').value = currentName;
                         } else {
-                            document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
+                            document.getElementById('salesInput').value = currentName;
                         }
                     });
                 } else {
-                    document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
+                    document.getElementById('salesInput').value = currentName;
                 }
             });
         }
@@ -440,6 +451,7 @@
             let payload = {
                 action: "submit",
                 username: localStorage.getItem("loggedInUser"),
+                fullName: localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser"), // Kirim Nama Lengkap
                 date: document.getElementById('inputDate').value,
                 internalView: getInt(document.getElementById('internalView').value),
                 customerView: getInt(document.getElementById('customerView').value),
@@ -496,7 +508,7 @@
                 let html = "";
                 data.data.forEach(row => {
                     let dDate = row[1];
-                    let ownerName = row[3] || row[0];
+                    let ownerName = row[3] || row[0]; // Di Backend sekarang diset ke Full Name
                     let dDaily = parseFloat(row[33] || 0).toLocaleString('id-ID');
                     let htmlData = JSON.stringify(row).replace(/"/g, '&quot;');
                     
@@ -505,7 +517,7 @@
                             <div>
                                 <div class="h-date">${new Date(dDate).toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long'})}</div>
                                 <div class="h-sub">Net Sales: Rp ${parseFloat(row[34] || 0).toLocaleString('id-ID')} | Total Sales: Rp ${dDaily}</div>
-                                <div class="h-sub" style="color:var(--ios-blue); font-weight:600; font-size:11px;">Input oleh: ${ownerName}</div>
+                                <div class="h-sub" style="color:var(--ios-blue); font-weight:600; font-size:11px;">Oleh: ${ownerName}</div>
                             </div>
                             <i class="bi bi-chevron-right" style="color:var(--ios-gray)"></i>
                         </div>
@@ -519,7 +531,7 @@
             let rowData = JSON.parse(rowDataStr);
             let dateStr = rowData[1];
             let dtInfo = rowData[2]; 
-            let editorName = rowData[3] || rowData[0];
+            let editorName = rowData[3] || rowData[0]; // Di Backend sekarang diset ke Full Name
             
             let htmlContent = `<div class="info-detail">`;
             htmlContent += `<div style="background:#f2f2f7; padding:12px; border-radius:10px; margin-bottom:15px; font-size:13px; text-align:center;">`;
@@ -559,7 +571,7 @@
                 if (res.isConfirmed) {
                     document.getElementById('inputDate').value = dateStr;
                     fillFormWithExistingData(rowData);
-                    document.getElementById('salesInput').value = localStorage.getItem("loggedInUser"); 
+                    document.getElementById('salesInput').value = localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser"); 
                     switchTab('Form');
                 } else if (res.isDenied) {
                     Swal.fire({
@@ -619,7 +631,7 @@
             document.getElementById('customerView').value = "";
             document.getElementById('totalView').value = "";
             document.getElementById('totalChats').value = "";
-            document.getElementById('salesInput').value = localStorage.getItem("loggedInUser");
+            document.getElementById('salesInput').value = localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser");
         }
 
         // --- ADMIN PANEL & USER MANAGEMENT ---
@@ -656,10 +668,10 @@
                         html += `
                             <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #e5e5ea;">
                                 <div>
-                                    <div style="font-weight:700; font-size:15px;">${u.username} ${roleBadge} ${statusBadge}</div>
-                                    <div style="font-size:12px; color:var(--ios-gray); margin-top:3px;">Password: <code>${u.password}</code></div>
+                                    <div style="font-weight:700; font-size:15px;">${u.fullName || u.username} ${roleBadge} ${statusBadge}</div>
+                                    <div style="font-size:12px; color:var(--ios-gray); margin-top:3px;">User: <b>${u.username}</b> | Pass: <code>${u.password}</code></div>
                                 </div>
-                                <button onclick="showEditStaffModal('${u.username}', '${u.role}', '${u.status}', '${u.password}')" class="ios-btn" style="width:auto; padding:6px 12px; font-size:12px; background:#e5e5ea; color:#007aff;">Kelola</button>
+                                <button onclick="showEditStaffModal('${u.username}', '${u.fullName || ''}', '${u.role}', '${u.status}', '${u.password}')" class="ios-btn" style="width:auto; padding:6px 12px; font-size:12px; background:#e5e5ea; color:#007aff;">Kelola</button>
                             </div>
                         `;
                     });
@@ -672,19 +684,27 @@
             });
         }
 
+        // TAMPILAN UX TAMBAH STAFF MODEREN
         function showAddStaffModal() {
             Swal.fire({
                 title: 'Tambah Staff Baru',
                 html: `
-                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px;">Username:</div>
-                    <input id="swalNewUser" class="swal2-input" placeholder="Masukkan Username" style="margin-top:0;">
-                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Password:</div>
-                    <input id="swalNewPass" type="password" class="swal2-input" placeholder="Masukkan Password" style="margin-top:0;">
-                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Role:</div>
-                    <select id="swalNewRole" class="swal2-input" style="margin-top:0;">
-                        <option value="Staff">Staff</option>
-                        <option value="Admin">Admin</option>
-                    </select>
+                    <div style="padding-top: 10px;">
+                        <label class="swal-label">Nama Lengkap</label>
+                        <input id="swalNewFullName" class="swal-custom-input" placeholder="Contoh: Budi Santoso">
+                        
+                        <label class="swal-label">Username Login</label>
+                        <input id="swalNewUser" class="swal-custom-input" placeholder="Masukkan Username (tanpa spasi)">
+                        
+                        <label class="swal-label">Password Login</label>
+                        <input id="swalNewPass" type="text" class="swal-custom-input" placeholder="Masukkan Password">
+                        
+                        <label class="swal-label">Role Akses</label>
+                        <select id="swalNewRole" class="swal-custom-input">
+                            <option value="Staff">Staff (Hanya Input Data)</option>
+                            <option value="Admin">Admin (Akses Penuh)</option>
+                        </select>
+                    </div>
                 `,
                 focusConfirm: false,
                 showCancelButton: true,
@@ -693,20 +713,27 @@
                 confirmButtonColor: '#007aff',
                 cancelButtonColor: '#8e8e93',
                 preConfirm: () => {
+                    const fn = document.getElementById('swalNewFullName').value.trim();
                     const u = document.getElementById('swalNewUser').value.trim();
                     const p = document.getElementById('swalNewPass').value.trim();
                     const r = document.getElementById('swalNewRole').value;
-                    if (!u || !p) {
-                        Swal.showValidationMessage('Username dan Password wajib diisi!');
+                    
+                    if (!fn || !u || !p) {
+                        Swal.showValidationMessage('Nama Lengkap, Username, dan Password wajib diisi!');
                         return false;
                     }
-                    return { newUsername: u, newPassword: p, newRole: r };
+                    if (u.indexOf(' ') >= 0) {
+                        Swal.showValidationMessage('Username tidak boleh menggunakan spasi!');
+                        return false;
+                    }
+                    return { newFullName: fn, newUsername: u, newPassword: p, newRole: r };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
                     apiCall({
                         action: "addStaff",
                         username: localStorage.getItem("loggedInUser"),
+                        newFullName: result.value.newFullName,
                         newUsername: result.value.newUsername,
                         newPassword: result.value.newPassword,
                         newRole: result.value.newRole
@@ -722,22 +749,30 @@
             });
         }
 
-        function showEditStaffModal(targetUser, currentRole, currentStatus, currentPass) {
+        // TAMPILAN UX EDIT STAFF MODEREN
+        function showEditStaffModal(targetUser, currentFullName, currentRole, currentStatus, currentPass) {
             Swal.fire({
-                title: `Kelola Staff: ${targetUser}`,
+                title: `Edit Akun: ${targetUser}`,
                 html: `
-                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px;">Password Baru / Ubah Password:</div>
-                    <input id="swalEditPass" type="text" class="swal2-input" value="${currentPass}" placeholder="Password Baru" style="margin-top:0;">
-                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Role User:</div>
-                    <select id="swalEditRole" class="swal2-input" style="margin-top:0;">
-                        <option value="Staff" ${currentRole === 'Staff' ? 'selected' : ''}>Staff</option>
-                        <option value="Admin" ${currentRole === 'Admin' ? 'selected' : ''}>Admin</option>
-                    </select>
-                    <div style="text-align:left; font-size:13px; color:#666; margin-bottom:5px; margin-top:10px;">Status Akun:</div>
-                    <select id="swalEditStatus" class="swal2-input" style="margin-top:0;">
-                        <option value="Active" ${(currentStatus === 'Active' || currentStatus === 'Aktif') ? 'selected' : ''}>Aktif</option>
-                        <option value="Inactive" ${(currentStatus === 'Inactive' || currentStatus === 'Nonaktif') ? 'selected' : ''}>Nonaktif</option>
-                    </select>
+                    <div style="padding-top: 10px;">
+                        <label class="swal-label">Nama Lengkap</label>
+                        <input id="swalEditFullName" type="text" class="swal-custom-input" value="${currentFullName}" placeholder="Nama Lengkap User">
+                        
+                        <label class="swal-label">Ubah Password</label>
+                        <input id="swalEditPass" type="text" class="swal-custom-input" value="${currentPass}" placeholder="Password Baru">
+                        
+                        <label class="swal-label">Role Akses</label>
+                        <select id="swalEditRole" class="swal-custom-input">
+                            <option value="Staff" ${currentRole === 'Staff' ? 'selected' : ''}>Staff</option>
+                            <option value="Admin" ${currentRole === 'Admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                        
+                        <label class="swal-label">Status Akun</label>
+                        <select id="swalEditStatus" class="swal-custom-input">
+                            <option value="Active" ${(currentStatus === 'Active' || currentStatus === 'Aktif') ? 'selected' : ''}>Aktif (Bisa Login)</option>
+                            <option value="Inactive" ${(currentStatus === 'Inactive' || currentStatus === 'Nonaktif') ? 'selected' : ''}>Nonaktif (Blokir)</option>
+                        </select>
+                    </div>
                 `,
                 focusConfirm: false,
                 showCancelButton: true,
@@ -747,6 +782,7 @@
                 cancelButtonColor: '#8e8e93',
                 preConfirm: () => {
                     return {
+                        newFullName: document.getElementById('swalEditFullName').value.trim(),
                         newPassword: document.getElementById('swalEditPass').value.trim(),
                         newRole: document.getElementById('swalEditRole').value,
                         newStatus: document.getElementById('swalEditStatus').value
@@ -758,12 +794,21 @@
                         action: "updateStaff",
                         username: localStorage.getItem("loggedInUser"),
                         targetUser: targetUser,
+                        newFullName: result.value.newFullName,
                         newPassword: result.value.newPassword,
                         newRole: result.value.newRole,
                         newStatus: result.value.newStatus
                     }).then(data => {
                         if (data.status === "success") {
                             alertIOS("Sukses", data.message, "success");
+                            
+                            // Jika mengedit akun sendiri, update Full Name di memory local
+                            if(targetUser === localStorage.getItem("loggedInUser") && result.value.newFullName) {
+                                localStorage.setItem("userFullName", result.value.newFullName);
+                                document.getElementById('staffName').innerText = result.value.newFullName;
+                                document.getElementById('salesInput').value = result.value.newFullName;
+                            }
+                            
                             loadStaffList();
                         } else {
                             alertIOS("Gagal", data.message, "error");
