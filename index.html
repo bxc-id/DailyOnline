@@ -31,8 +31,8 @@
         /* WRAPPER AGAR TAMPILAN RESPONSIVE SEPERTI APLIKASI MOBILE */
         .app-wrapper {
             width: 100%;
-            max-width: 550px; /* Batas maksimal lebar untuk tampilan Mobile */
-            min-height: 100vh;
+            max-width: 600px; /* Batas maksimal lebar untuk tampilan Mobile diubah ke 600px */
+            min-height: 791px; /* Minimal tinggi diset ke 791px sesuai permintaan */
             background-color: var(--ios-bg);
             position: relative;
             box-shadow: 0 0 20px rgba(0,0,0,0.08);
@@ -69,7 +69,7 @@
         .ios-btn-warning { background: #ff9500; }
         .ios-btn-success { background: #34c759; }
 
-        .tab-bar { position: fixed; bottom: 0; width: 100%; max-width: 550px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; }
+        .tab-bar { position: fixed; bottom: 0; width: 100%; max-width: 600px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; }
         .tab-item { text-align: center; color: var(--ios-gray); font-size: 11px; font-weight: 500; cursor: pointer; transition: 0.2s; width: 25%; }
         .tab-item i { font-size: 22px; display: block; margin-bottom: 3px; }
         .tab-item.active { color: var(--ios-blue); }
@@ -370,7 +370,7 @@
     <!-- JAVASCRIPT LOGIC -->
     <script>
         // URL DEPLOY GOOGLE APPS SCRIPT
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnYMyWGPxN22MN314AgY1bACnuPEGu-v5h2iAfhVk7Uog6aylXmCGJNaJqrp89PvnGGA/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5eJ6wXBpu-L0lYH0TuG5Noc_ethgq5KrexGkOBA3GbO8QEcoIswrxsnd2VLPPWxzdmA/exec'; 
         
         let currentPajak = 0;
         let isEditMode = false;
